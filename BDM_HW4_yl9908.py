@@ -28,7 +28,6 @@ def extract_features_ksi(partId, records):
 def extract_features_kp(partId, records):
     if partId==0: 
         next(records)
-    import csv
     reader = csv.reader(records)
     for row in reader:
         (store, department, code, name, price) = (row[0], row[1], row[2][4:], row[3], row[5].split('$')[1].split('聽')[0])
@@ -43,7 +42,8 @@ if __name__ == "__main__":
     
     # define input file paths
     KSI = 'keyfood_sample_items.csv'
-    KP = '/shared/CUSP-GX-6002/data/keyfood_products.csv'
+    #KP = '/shared/CUSP-GX-6002/data/keyfood_products.csv'
+    KP = 'keyfood_products.csv'
     KNS = 'keyfood_nyc_stores.json'
     
     # extract features from keyfood_sample_items.csv and keyfood_products.csv
