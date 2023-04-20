@@ -1,4 +1,5 @@
 # BDM_HW4_yl9908.py
+
 import csv
 import json
 import sys
@@ -23,12 +24,12 @@ def extractFeatures2(partId, records):
         (store, department, code, name, price) = (store, department, code, name, price.replace('\xa0per lb', ''))
         yield (store, department, code, name, price)
 
-def main():
+def main(output_folder):
     sc = SparkContext.getOrCreate()
     spark = SparkSession(sc)
 
     KSI = 'keyfood_sample_items.csv'
-    KP = 'keyfood_products.csv'
+    KP = '/shared/CUSP-GX-6002/data/keyfood_products.csv'
 
     sample_items = sc.textFile(KSI, use_unicode=True).cache()
     products = sc.textFile(KP, use_unicode=True).cache()
@@ -57,8 +58,8 @@ def main():
     outputTask1 = filtered_rdd.map(lambda x: (sample_dict[x[1]], x[3], x[4]))
     outputTask1.cache()
 
-    print(outputTask1.take(5))
-    print(outputTask1.count())
+    outputTask1.saveAsTextFile(output_folder)
 
 if __name__ == "__main__":
-    main()
+    output_folder = sys.argv[1]
+    main(output_folder)
