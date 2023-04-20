@@ -14,6 +14,17 @@ def extractFeatures1(partId, records):
         (code, name) = (row[0][4:], row[1])
         yield (code, name)
 
+def extractFeatures2(partId, records):
+    if partId==0: 
+        next(records)
+    import csv
+    reader = csv.reader(records)
+    for row in reader:
+        (store, department, code, name, price) = (row[0], row[1], row[2][4:], row[3], row[5].split('$')[1].split('聽')[0])
+        (store, department, code, name, price) = (store, department, code, name, price.replace('\xa0each', ''))
+        (store, department, code, name, price) = (store, department, code, name, price.replace('\xa0per lb', ''))
+        yield (store, department, code, name, price)
+
 def main(output_folder):
     sc = SparkContext.getOrCreate()
     spark = SparkSession(sc)
@@ -25,6 +36,7 @@ def main(output_folder):
     products = sc.textFile(KP, use_unicode=True).cache()
 
     sample_items = sample_items.mapPartitionsWithIndex(extractFeatures1)
+    products = products.mapPartitionsWithIndex(extractFeatures2)
 
     prod = products.filter(lambda x: not x.startswith('store,department')) \
         .map(lambda r:  next(csv.reader([r])) ) \
