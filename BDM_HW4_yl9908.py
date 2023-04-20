@@ -14,16 +14,6 @@ def extractFeatures1(partId, records):
         (code, name) = (row[0][4:], row[1])
         yield (code, name)
 
-def extractFeatures2(partId, records):
-    if partId==0: 
-        next(records)
-    reader = csv.reader(records)
-    for row in reader:
-        (store, department, code, name, price) = (row[0], row[1], row[2][4:], row[3], row[5].split('$')[1].split('聽')[0])
-        (store, department, code, name, price) = (store, department, code, name, price.replace('\xa0each', ''))
-        (store, department, code, name, price) = (store, department, code, name, price.replace('\xa0per lb', ''))
-        yield (store, department, code, name, price)
-
 def main(output_folder):
     sc = SparkContext.getOrCreate()
     spark = SparkSession(sc)
@@ -35,7 +25,11 @@ def main(output_folder):
     products = sc.textFile(KP, use_unicode=True).cache()
 
     sample_items = sample_items.mapPartitionsWithIndex(extractFeatures1)
-    products = products.mapPartitionsWithIndex(extractFeatures2)
+
+    prod = products.filter(lambda x: not x.startswith('store,department')) \
+        .map(lambda r:  next(csv.reader([r])) ) \
+        .filter(lambda x: x[2]!='N/A') \
+        .map(lambda x: (x[0],(x[2].split('-')[1]),x[3], x[5][1:].split('\xa0')[0]) )
 
     with open('keyfood_nyc_stores.json', 'r') as f:
         stores = json.load(f)
@@ -47,7 +41,7 @@ def main(output_folder):
     security = rdd.map(lambda x: (x[0], x[1][0], round(x[1][1],2)))
     insecurity_dict = security.map(lambda x: (x[0], x[2])).collectAsMap()
 
-    result_rdd = products.map(lambda x: (x[0], x[2], x[3], x[4], insecurity_dict.get(x[0])))
+    result_rdd = prod.map(lambda x: (x[0], x[1], x[2], x[3], insecurity_dict.get(x[0])))
 
     sample_names = [x[1] for x in sample_items.collect()]
     filtered_rdd = result_rdd.filter(lambda x: x[1] in sample_names)
